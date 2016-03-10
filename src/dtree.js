@@ -1,4 +1,5 @@
 import TreeBuilder from './builder.js';
+import '../lib/d3-flextree.js';
 
 const dTree = {
 

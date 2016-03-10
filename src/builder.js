@@ -46,17 +46,29 @@ class TreeBuilder {
     zoom.translate([width / 2, opts.margin.top]);
 
     // Compute the layout.
-    this.tree = d3.layout.tree()
-      .nodeSize([nodeSize[0] * 2, nodeSize[1] * 2.5]);
+    // this.tree = d3.layout.tree()
+    //   .nodeSize([nodeSize[0] * 2, nodeSize[1] * 2.5]);
+    this.tree = d3.layout.flextree()
+      .nodeSize(function(node) {
+        console.log(node, node.cWidth, node.cHeight);
+        if (node.cWidth) {
+          return [node.cWidth, node.cHeight];
+        }
+        return [5, nodeSize[1] * 2.5];
+      });
 
-    this.tree.separation(function separation(a, b) {
-      if (a.hidden || b.hidden) {
-        return 0.3;
-      } else {
-        return 0.6;
-      }
+    // this.tree.separation(function(a, b) {
+    //   if (a.hidden || b.hidden) {
+    //     return 0.3;
+    //   } else {
+    //     return 0.6;
+    //   }
+    // });
+    this.tree.spacing(function(a, b) {
+      return 10;
     });
 
+    console.log(this.root);
     this._update(this.root);
 
   }
