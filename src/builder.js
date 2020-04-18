@@ -6,6 +6,8 @@ class TreeBuilder {
     this.root = root;
     this.siblings = siblings;
     this.opts = opts;
+    this.centered = null;
+    this.zoom = null;
 
     // flatten nodes
     this.allNodes = this._flatten(this.root);
@@ -27,10 +29,16 @@ class TreeBuilder {
     let width = opts.width + opts.margin.left + opts.margin.right;
     let height = opts.height + opts.margin.top + opts.margin.bottom;
 
-    let zoom = d3.zoom()
+    let firstTime = true;
+
+    this.zoom = d3.zoom()
       .scaleExtent([0.1, 10])
       .on('zoom', function() {
+        console.log('This motherfucker was called',d3.event.transform);
         svg.attr('transform', d3.event.transform.translate(width / 2, opts.margin.top));
+        // firstTime = false
+        // svg.attr('transform', d3.event.transform);
+        // svg.call(this.zoom.scaleTo, d3.event.transform.k + .5)
       });
 
     //make an SVG
@@ -38,9 +46,13 @@ class TreeBuilder {
       .append('svg')
       .attr('width', width)
       .attr('height', height)
-      .call(zoom)
+      // .call(this.zoom)
       .append('g')
-      .attr('transform', 'translate(' + width / 2 + ',' + opts.margin.top + ')');
+      // .call(this.zoom.translateTo, width / 2, opts.margin.top)
+      // .attr('transform', 'translate(' + width / 2 + ',' + opts.margin.top + ')');
+    // d3.select('g').call(this.zoom.translateTo,opts.margin.top, (width / 2));
+
+    // svg.call(this.zoom.translateTo, 0, 800)
 
     // Compute the layout.
     this.tree = d3.tree()
@@ -114,7 +126,7 @@ class TreeBuilder {
       .attr('id', function(d) {
         return d.id;
       })
-      .html(function(d) {
+      .html((d) => {
         return opts.callbacks.nodeRenderer(
           d.data.name,
           d.x,
@@ -127,11 +139,42 @@ class TreeBuilder {
           d.data.textClass,
           opts.callbacks.textRenderer);
       })
-      .on('click', function(d)  {
+      .on('click', (d) => {
         if (d.data.hidden) {
           return;
         }
-        opts.callbacks.nodeClick(d.data.name, d.data.extra, d.data.id);
+        debugger
+
+        //Need to zoom and center when zoomed
+        let x, y ,zoomLevel;
+
+        if (d && this.centered !== d) {
+          debugger
+          x = d.x
+          y = d.y
+
+          zoomLevel = 2;
+          this.centered = d;
+        } else {
+          x = this.opts.width / 2;
+          y = this.opts.height / 2;
+          zoomLevel = 1;
+          this.centered = null; 
+        }
+
+        let gElement = d3.select('svg').select('g')
+        let currentTransform = gElement.attr('transform')
+        debugger 
+
+        d3.select('svg').select('g').transition()
+          .duration(1000)
+          .ease(d3.easeCubicOut)
+          // .attr('transform', `translate(${(this.opts.width - x)  / 2}, ${(this.opts.height - y) / 2})scale(${zoomLevel})`)
+          .attr('transform', d3.event.transform.translate((this.opts.width - x) / 2, (this.opts.height - y) / 2)).scale(zoomLevel)
+          // .call(this.zoom.translateTo, (this.opts.width - x) / 2, (this.opts.height - y) / 2)
+          // .call(this.zoom.scaleTo, zoomLevel)
+
+        // opts.callbacks.nodeClick(d.data.name, d.data.extra, d.data.id);
       })
       .on('contextmenu', function(d)  {
         if (d.data.hidden) {

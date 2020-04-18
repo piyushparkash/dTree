@@ -16,6 +16,8 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
       this.root = root;
       this.siblings = siblings;
       this.opts = opts;
+      this.centered = null;
+      this.zoom = null;
 
       // flatten nodes
       this.allNodes = this._flatten(this.root);
@@ -38,12 +40,25 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
         var width = opts.width + opts.margin.left + opts.margin.right;
         var height = opts.height + opts.margin.top + opts.margin.bottom;
 
-        var zoom = d3.zoom().scaleExtent([0.1, 10]).on('zoom', function () {
+        var firstTime = true;
+
+        this.zoom = d3.zoom().scaleExtent([0.1, 10]).on('zoom', function () {
+          console.log('This motherfucker was called', d3.event.transform);
           svg.attr('transform', d3.event.transform.translate(width / 2, opts.margin.top));
+          // firstTime = false
+          // svg.attr('transform', d3.event.transform);
+          // svg.call(this.zoom.scaleTo, d3.event.transform.k + .5)
         });
 
         //make an SVG
-        var svg = this.svg = d3.select(opts.target).append('svg').attr('width', width).attr('height', height).call(zoom).append('g').attr('transform', 'translate(' + width / 2 + ',' + opts.margin.top + ')');
+        var svg = this.svg = d3.select(opts.target).append('svg').attr('width', width).attr('height', height)
+        // .call(this.zoom)
+        .append('g');
+        // .call(this.zoom.translateTo, width / 2, opts.margin.top)
+        // .attr('transform', 'translate(' + width / 2 + ',' + opts.margin.top + ')');
+        // d3.select('g').call(this.zoom.translateTo,opts.margin.top, (width / 2));
+
+        // svg.call(this.zoom.translateTo, 0, 800)
 
         // Compute the layout.
         this.tree = d3.tree().nodeSize([nodeSize[0] * 2, opts.callbacks.nodeHeightSeperation(nodeSize[0], nodeSize[1])]);
@@ -61,6 +76,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
     }, {
       key: '_update',
       value: function _update(source) {
+        var _this = this;
 
         var opts = this.opts;
         var allNodes = this.allNodes;
@@ -102,7 +118,38 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
           if (d.data.hidden) {
             return;
           }
-          opts.callbacks.nodeClick(d.data.name, d.data.extra, d.data.id);
+          debugger;
+
+          //Need to zoom and center when zoomed
+          var x = undefined,
+              y = undefined,
+              zoomLevel = undefined;
+
+          if (d && _this.centered !== d) {
+            debugger;
+            x = d.x;
+            y = d.y;
+
+            zoomLevel = 2;
+            _this.centered = d;
+          } else {
+            x = _this.opts.width / 2;
+            y = _this.opts.height / 2;
+            zoomLevel = 1;
+            _this.centered = null;
+          }
+
+          var gElement = d3.select('svg').select('g');
+          var currentTransform = gElement.attr('transform');
+          debugger;
+
+          d3.select('svg').select('g').transition().duration(1000).ease(d3.easeCubicOut)
+          // .attr('transform', `translate(${(this.opts.width - x)  / 2}, ${(this.opts.height - y) / 2})scale(${zoomLevel})`)
+          .attr('transform', d3.event.transform.translate((_this.opts.width - x) / 2, (_this.opts.height - y) / 2)).scale(zoomLevel);
+          // .call(this.zoom.translateTo, (this.opts.width - x) / 2, (this.opts.height - y) / 2)
+          // .call(this.zoom.scaleTo, zoomLevel)
+
+          // opts.callbacks.nodeClick(d.data.name, d.data.extra, d.data.id);
         }).on('contextmenu', function (d) {
           if (d.data.hidden) {
             return;
